@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'screens/search_screen.dart';
+import 'screens/host_detail_screen.dart';
+import 'screens/stats_screen.dart';
+import 'screens/scan_screen.dart';
+import 'screens/dns_tools_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/favorites_list_screen.dart';
+import 'screens/favorite_form_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,8 +21,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Echo',
       theme: ThemeData(
-        brightness: Brightness.dark, // Tema oscuro por defecto
-        scaffoldBackgroundColor: Colors.black, // Fondo oscuro total
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF262626),
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.greenAccent,
           brightness: Brightness.dark,
@@ -34,57 +42,17 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const MyHomePage(title: 'Echo Home'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        centerTitle: true,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: GoogleFonts.ptMono(
-                fontSize: 32,
-                color: Colors.greenAccent,
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        backgroundColor: Colors.greenAccent,
-        child: const Icon(Icons.add, color: Colors.black),
-      ),
+      initialRoute: '/search',
+      routes: {
+        '/search': (context) => const SearchScreen(),
+        '/detail': (context) => const HostDetailScreen(),
+        '/stats': (context) => const StatsScreen(),
+        '/scan': (context) => const ScanScreen(),
+        '/dns': (context) => const DnsToolsScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/favorites': (context) => const FavoritesListScreen(),
+        '/favorites/form': (context) => const FavoriteFormScreen(),
+      },
     );
   }
 }
