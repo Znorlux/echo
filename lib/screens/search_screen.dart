@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/navbar.dart'; // Importa el widget
 
 class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
@@ -12,6 +13,7 @@ class SearchScreen extends StatelessWidget {
       body: const Center(
         child: Text('Search Screen'),
       ),
+      bottomNavigationBar: const NavBar(atBottom: true,), // Pasa el índice
     );
   }
 }
