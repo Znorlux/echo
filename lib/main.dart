@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:myapp/config/app_theme.dart';
 import 'screens/search_screen.dart';
 import 'screens/host_detail_screen.dart';
 import 'screens/stats_screen.dart';
@@ -20,28 +20,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Echo',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF262626),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.greenAccent,
-          brightness: Brightness.dark,
-        ),
-        textTheme: GoogleFonts.ptMonoTextTheme(
-          Theme.of(context).textTheme.apply(
-                bodyColor: Colors.greenAccent,
-                displayColor: Colors.greenAccent,
-              ),
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.grey[900],
-          titleTextStyle: GoogleFonts.ptMono(
-            fontSize: 20,
-            color: Colors.greenAccent,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
       initialRoute: '/search',
       routes: {
         '/search': (context) => const SearchScreen(),
