@@ -114,11 +114,12 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
   }
 
   void _edit(Favorite f) {
-    Navigator.pushNamed(context, '/favorites/form', arguments: f.toMap());
+    //esto debe arreglarse a favorites/form
+    Navigator.pushNamed(context, '/detail', arguments: f.toMap());
   }
 
   void _create() {
-    Navigator.pushNamed(context, '/favorites/form'); // sin argumentos = crear
+    Navigator.pushNamed(context, '/detail'); // sin argumentos = crear
   }
 
   Widget _chip(String text) => Container(
