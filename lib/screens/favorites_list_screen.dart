@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/widgets/glow_input.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class Favorite {
@@ -126,7 +127,7 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     margin: const EdgeInsets.only(right: 6),
     decoration: BoxDecoration(
-      border: Border.all(color: Colors.greenAccent.withOpacity(0.6)),
+      border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.6)),
       borderRadius: BorderRadius.circular(999),
     ),
     child: Text(text, style: const TextStyle(fontSize: 12)),
@@ -145,31 +146,10 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
           // Buscador
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
+            child: GlowInput(
               controller: _searchCtrl,
-              onChanged: (v) => setState(() => _query = v.trim()),
-              decoration: InputDecoration(
-                hintText: 'Filtrar por IP, alias o tag...',
-                prefixIcon: const PhosphorIcon(
-                  PhosphorIconsRegular.magnifyingGlass,
-                ),
-                filled: true,
-                fillColor: Colors.black,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.greenAccent,
-                    width: 1.3,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.greenAccent,
-                    width: 1.8,
-                  ),
-                ),
-              ),
+              hintText: 'Filtrar por IP, alias o tag...',
+              onSearch: () => setState(() => _query = _searchCtrl.text.trim()),
             ),
           ),
 
