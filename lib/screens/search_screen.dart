@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../widgets/glow_input.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -49,63 +50,11 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           children: [
             // 🔎 Input con glow verde
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.greenAccent.withOpacity(0.5),
-                    blurRadius: 12,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(color: Colors.greenAccent),
-                decoration: InputDecoration(
-                  hintText: "Buscar host, dominio o query...",
-                  hintStyle: TextStyle(
-                    color: Colors.greenAccent.withOpacity(0.5),
-                  ),
-                  prefixIcon: const PhosphorIcon(
-                    PhosphorIconsRegular.magnifyingGlass,
-                    color: Colors.greenAccent,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: const PhosphorIcon(
-                      PhosphorIconsRegular.arrowRight,
-                      color: Colors.greenAccent,
-                    ),
-                    onPressed: () {
-                      if (_controller.text.trim().isNotEmpty) {
-                        _searchShodan(_controller.text.trim());
-                      }
-                    },
-                  ),
-                  filled: true,
-                  fillColor: Colors.black,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Colors.greenAccent,
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Colors.greenAccent,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    _searchShodan(value.trim());
-                  }
-                },
-              ),
+            GlowInput(
+              controller: _controller,
+              hintText: "Buscar host, dominio o query...",
+              onSearch: () => _searchShodan(_controller.text.trim()),
+              onSubmitted: (value) => _searchShodan(value),
             ),
             const SizedBox(height: 16),
 
