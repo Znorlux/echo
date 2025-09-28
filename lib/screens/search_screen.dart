@@ -24,7 +24,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   List<_Hit> _results = const [];
   int _page = 1;
-  final int _limit = 20;
+  final int _size = 20;
   int _total = 0;
   String _currentQuery = '';
 
@@ -76,7 +76,7 @@ class _SearchScreenState extends State<SearchScreen> {
         queryParameters: {
           'q': _currentQuery,
           'page': '$_page',
-          'limit': '$_limit',
+          'size': '$_size',
         },
       );
 
@@ -86,7 +86,6 @@ class _SearchScreenState extends State<SearchScreen> {
       }
 
       final body = json.decode(resp.body);
-      // adapta estas keys a tu backend, aquí asumo { data: [...], total: N }
       final List raw = (body['data'] as List?) ?? const [];
       final hits = raw.map((e) => _Hit.fromMap(e as Map)).toList();
       final total =
@@ -172,7 +171,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   shape: StadiumBorder(
                     side: BorderSide(
-                      color: Colors.greenAccent.withOpacity(0.5),
+                      color: Colors.greenAccent.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
