@@ -132,12 +132,17 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
   }
 
   void _edit(Favorite f) {
-    //esto debe arreglarse a favorites/form
+    // Editar favorito
+    Navigator.pushNamed(context, '/favorites/form', arguments: f.toMap());
+  }
+
+  void _viewDetails(Favorite f) {
+    // Ver detalles del favorito
     Navigator.pushNamed(context, '/detail', arguments: f.toMap());
   }
 
   void _create() {
-    Navigator.pushNamed(context, '/detail'); // sin argumentos = crear
+    Navigator.pushNamed(context, '/favorites/form'); // sin argumentos = crear
   }
 
   Widget _chip(String text) => Container(
@@ -156,6 +161,8 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
       appBar: AppBar(title: const Text('Favorites')),
       floatingActionButton: FloatingActionButton(
         onPressed: _create,
+        backgroundColor: Colors.greenAccent,
+        foregroundColor: Colors.black,
         child: const PhosphorIcon(PhosphorIconsFill.plus),
       ),
       body: Column(
@@ -191,7 +198,7 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
                         background: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          color: Colors.red.withOpacity(0.3),
+                          color: Colors.red.withValues(alpha: 0.3),
                           child: const Icon(Icons.delete, color: Colors.red),
                         ),
                         confirmDismiss: (_) => showDialog<bool>(
@@ -232,7 +239,7 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
                               onPressed: () => _edit(f),
                               tooltip: 'Editar',
                             ),
-                            onTap: () => _edit(f),
+                            onTap: () => _viewDetails(f),
                           ),
                         ),
                       );
