@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../models/host.dart';
+import '../models/service.dart';
+import '../models/summary.dart';
 
 class HostDetailScreen extends StatefulWidget {
   const HostDetailScreen({super.key});
@@ -9,7 +12,7 @@ class HostDetailScreen extends StatefulWidget {
 }
 
 class _HostDetailScreenState extends State<HostDetailScreen> {
-  Map<String, dynamic>? _host;
+  Host? _host;
   bool _loading = true;
   String? _error;
   bool _showAllVulns = false;
@@ -42,7 +45,7 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
       await Future.delayed(const Duration(milliseconds: 600));
       final mock = _mockHostResponseFor(_ip);
       setState(() {
-        _host = mock['data'] as Map<String, dynamic>;
+        _host = Host.fromMap(mock['data'] as Map<String, dynamic>);
         _loading = false;
       });
     } catch (e) {
@@ -94,7 +97,7 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
             "transport": "tcp",
             "service": "OpenSSH",
             "product": "OpenSSH",
-            "version": "6.6.1p1 Ubuntu 2ubuntu2.13",
+            "version": "6.6.1 Ubuntu",
             "cpe": [
               "cpe:/a:openbsd:openssh:6.6.1p1",
               "cpe:/o:canonical:ubuntu_linux",
@@ -130,7 +133,7 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
             "transport": "udp",
             "service": "ntp",
             "product": null,
-            "version": null,
+            "version": 1.2,
             "cpe": [],
             "fingerprints": 1863949623,
             "http": null,
@@ -140,9 +143,9 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
           {
             "port": 9929,
             "transport": "tcp",
-            "service": "auto",
+            "service": "sftpserver",
             "product": null,
-            "version": null,
+            "version": 1.2,
             "cpe": [],
             "fingerprints": 323137400,
             "http": null,
@@ -222,7 +225,12 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     return Colors.greenAccent;
   }
 
-  Widget _chip(String text, {IconData? icon, Color? color}) {
+  Widget _chip(
+    String text, {
+    IconData? icon,
+    Color? color,
+    bool noMargin = false,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // El chip no podrá ser más ancho que el espacio disponible en la fila/wrap
@@ -234,11 +242,13 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
           constraints: BoxConstraints(maxWidth: maxW),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            margin: const EdgeInsets.only(right: 8, bottom: 8),
+            margin: noMargin
+                ? EdgeInsets.zero
+                : const EdgeInsets.only(right: 8, bottom: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: (color ?? Colors.greenAccent).withOpacity(0.7),
+                color: (color ?? Colors.greenAccent).withValues(alpha: 0.7),
                 width: 1.2,
               ),
             ),
@@ -299,15 +309,15 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     );
   }
 
-  Widget _header(Map<String, dynamic> h) {
-    final hostnames = (h['hostnames'] as List?)?.cast<String>() ?? const [];
-    final domains = (h['domains'] as List?)?.cast<String>() ?? const [];
-    final geo = (h['geo'] as Map?) ?? {};
+  Widget _header(Host h) {
+    final hostnames = h.hostnames;
+    final domains = h.domains;
+    final geo = h.geo;
+
     return _card(
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // IP + ISP/ORG
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -317,35 +327,48 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Wrap(
-                  runSpacing: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      h['ip']?.toString() ?? '',
+                      h.ip,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
                     ),
-                    if (h['org'] != null)
-                      _chip(
-                        'ORG: ${h['org']}',
-                        icon: PhosphorIconsRegular.buildings,
-                      ),
-                    if (h['isp'] != null)
-                      _chip(
-                        'ISP: ${h['isp']}',
-                        icon: PhosphorIconsRegular.globe,
-                      ),
+                    const SizedBox(height: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if ((h.org ?? '').isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: _chip(
+                              'ORG: ${h.org}',
+                              icon: PhosphorIconsRegular.buildings,
+                              noMargin: true,
+                            ),
+                          ),
+                        if ((h.isp ?? '').isNotEmpty)
+                          _chip(
+                            'ISP: ${h.isp}',
+                            icon: PhosphorIconsRegular.globe,
+                            noMargin: true,
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Hostnames / domains
+
           if (hostnames.isNotEmpty || domains.isNotEmpty)
             Wrap(
+              runSpacing: 6,
+              spacing: 6,
               children: [
                 if (hostnames.isNotEmpty)
                   _chip(
@@ -359,33 +382,30 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
                   ),
               ],
             ),
-          // Geo
-          if (geo.isNotEmpty) ...[
+
+          if (geo != null) ...[
             const SizedBox(height: 10),
             Wrap(
+              runSpacing: 6,
+              spacing: 6,
               children: [
-                if (geo['country'] != null)
+                if (geo.country != null)
+                  _chip(geo.country!, icon: PhosphorIconsRegular.flag),
+                if (geo.city != null)
+                  _chip(geo.city!, icon: PhosphorIconsRegular.mapPin),
+                if (geo.lat != null && geo.lon != null)
                   _chip(
-                    geo['country'].toString(),
-                    icon: PhosphorIconsRegular.flag,
-                  ),
-                if (geo['city'] != null)
-                  _chip(
-                    geo['city'].toString(),
-                    icon: PhosphorIconsRegular.mapPin,
-                  ),
-                if (geo['lat'] != null && geo['lon'] != null)
-                  _chip(
-                    '(${geo['lat']}, ${geo['lon']})',
+                    '(${geo.lat}, ${geo.lon})',
                     icon: PhosphorIconsRegular.target,
                   ),
               ],
             ),
           ],
-          if (h['last_update'] != null) ...[
+
+          if (h.lastUpdate != null) ...[
             const SizedBox(height: 10),
             _chip(
-              'last update: ${h['last_update']}',
+              'last update: ${h.lastUpdate}',
               icon: PhosphorIconsRegular.clock,
             ),
           ],
@@ -394,27 +414,26 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     );
   }
 
-  Widget _summary(Map<String, dynamic> sum) {
-    final openPorts = (sum['open_ports'] as List?)?.cast<num>() ?? const [];
-    final badges = (sum['badges'] as List?)?.cast<String>() ?? const [];
-    final exposure =
-        (sum['exposure_flags'] as List?)?.cast<String>() ?? const [];
-    final provider = sum['provider_hint']?.toString();
-    final risk = sum['risk_score'] as num?;
-    final webStack = sum['web_stack']?.toString();
-    final tls = sum['tls_summary']?.toString();
-    final Map<String, dynamic> portBuckets = Map<String, dynamic>.from(
-      sum['port_buckets'] ?? {},
-    );
+  Widget _summary(Summary sum) {
+    final openPorts = sum.openPorts;
+    final badges = sum.badges;
+    final exposure = sum.exposureFlags;
+    final provider = sum.providerHint;
+    final risk = sum.riskScore;
+    final webStack = sum.webStack;
+    final tls = sum.tlsSummary;
+    final portBuckets = sum.portBuckets;
 
     return _card(
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
+            runSpacing: 6,
+            spacing: 6,
             children: [
               _chip(
-                'risk: ${risk ?? 0}',
+                'risk: $risk',
                 icon: PhosphorIconsRegular.warning,
                 color: _riskColor(risk),
               ),
@@ -432,11 +451,17 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
           ),
           if (badges.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Wrap(children: badges.map((b) => _chip(b)).toList()),
+            Wrap(
+              runSpacing: 6,
+              spacing: 6,
+              children: badges.map((b) => _chip(b)).toList(),
+            ),
           ],
           if (exposure.isNotEmpty) ...[
             const SizedBox(height: 10),
             Wrap(
+              runSpacing: 6,
+              spacing: 6,
               children: exposure
                   .map(
                     (e) => _chip(
@@ -456,6 +481,8 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
             ),
             const SizedBox(height: 6),
             Wrap(
+              runSpacing: 6,
+              spacing: 6,
               children: portBuckets.entries.map((e) {
                 final name = e.key;
                 final values = (e.value as List?)?.cast<num>() ?? const [];
@@ -471,24 +498,16 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     );
   }
 
-  Widget _services(List<Map<String, dynamic>> services) {
-    if (services.isEmpty) {
-      return _card(const Text('Sin servicios detectados.'));
-    }
+  Widget _services(List<Service> services) {
+    if (services.isEmpty) return _card(const Text('Sin servicios detectados.'));
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: services.length,
       itemBuilder: (context, i) {
         final s = services[i];
-        final port = s['port'];
-        final transport = s['transport'];
-        final service = s['service']?.toString();
-        final product = s['product']?.toString();
-        final version = s['version']?.toString();
-        final cpe = (s['cpe'] as List?)?.cast<String>() ?? const [];
-        final httpInfo = s['http'] as Map?;
-        final sslInfo = s['ssl'] as Map?;
+        final serviceName = s.service?.toLowerCase();
 
         return _card(
           Column(
@@ -497,7 +516,7 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
               Row(
                 children: [
                   PhosphorIcon(
-                    (service?.toLowerCase().contains('http') ?? false)
+                    (serviceName?.contains('http') ?? false)
                         ? PhosphorIconsFill.globe
                         : PhosphorIconsFill.plug,
                     color: Colors.greenAccent,
@@ -505,52 +524,62 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '$service  •  $product ${version ?? ""}'.trim(),
+                      '${s.service ?? ''}  •  ${s.product} ${s.version ?? ""}'
+                          .trim(),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  _chip('$port/$transport', icon: PhosphorIconsRegular.plug),
+                  _chip(
+                    '${s.port}/${s.transport}',
+                    icon: PhosphorIconsRegular.plug,
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
-              if (cpe.isNotEmpty)
+              if (s.cpe.isNotEmpty)
                 Wrap(
-                  children: cpe
+                  children: s.cpe
                       .map((e) => _chip(e, icon: PhosphorIconsRegular.code))
                       .toList(),
                 ),
-              if (httpInfo != null) ...[
+
+              if (s.http.server != null ||
+                  (s.http.title?.isNotEmpty ?? false) ||
+                  s.http.status != null) ...[
                 const SizedBox(height: 8),
                 const Text(
                   'HTTP',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
-                if (httpInfo['server'] != null)
+                if (s.http.server != null)
                   _chip(
-                    'server: ${httpInfo['server']}',
+                    'server: ${s.http.server}',
                     icon: PhosphorIconsRegular.browser,
                   ),
-                if (httpInfo['title'] != null &&
-                    (httpInfo['title'] as String).isNotEmpty)
+                if (s.http.title != null && s.http.title!.isNotEmpty)
                   _chip(
-                    'title: ${httpInfo['title']}',
+                    'title: ${s.http.title}',
                     icon: PhosphorIconsRegular.textT,
                   ),
-                if (httpInfo['status'] != null)
+                if (s.http.status != null)
                   _chip(
-                    'status: ${httpInfo['status']}',
+                    'status: ${s.http.status}',
                     icon: PhosphorIconsRegular.numberSquareNine,
                   ),
               ],
-              if (sslInfo != null) ...[
+              // TLS
+              if (s.ssl.versions.isNotEmpty ||
+                  s.ssl.alpn.isNotEmpty ||
+                  s.ssl.cert.validFrom != null ||
+                  s.ssl.cert.validTo != null) ...[
                 const SizedBox(height: 8),
                 const Text(
                   'TLS',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
-                finalCert(sslInfo),
+                _finalCert(s.ssl),
               ],
             ],
           ),
@@ -559,39 +588,35 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     );
   }
 
-  Widget finalCert(Map sslInfo) {
-    final versions = (sslInfo['versions'] as List?)?.cast<String>() ?? const [];
-    final alpn = (sslInfo['alpn'] as List?)?.cast<String>() ?? const [];
-    final cert = (sslInfo['cert'] as Map?) ?? {};
-    final issuer = (cert['issuer'] as Map?) ?? {};
-    final subject = (cert['subject'] as Map?) ?? {};
+  Widget _finalCert(SslInfo ssl) {
+    final cert = ssl.cert;
     return Wrap(
       children: [
-        if (versions.isNotEmpty)
+        if (ssl.versions.isNotEmpty)
           _chip(
-            'vers: ${versions.join(", ")}',
+            'vers: ${ssl.versions.join(", ")}',
             icon: PhosphorIconsRegular.lock,
           ),
-        if (alpn.isNotEmpty)
+        if (ssl.alpn.isNotEmpty)
           _chip(
-            'alpn: ${alpn.join(", ")}',
+            'alpn: ${ssl.alpn.join(", ")}',
             icon: PhosphorIconsRegular.arrowsLeftRight,
           ),
-        if (issuer['CN'] != null)
+        if (cert.issuer.cn != null)
           _chip(
-            'issuer: ${issuer['CN']}',
+            'issuer: ${cert.issuer.cn}',
             icon: PhosphorIconsRegular.certificate,
           ),
-        if (subject['CN'] != null)
-          _chip('cn: ${subject['CN']}', icon: PhosphorIconsRegular.userCircle),
-        if (cert['valid_from'] != null)
+        if (cert.subject.cn != null)
           _chip(
-            'from: ${cert['valid_from']}',
-            icon: PhosphorIconsRegular.calendar,
+            'cn: ${cert.subject.cn}',
+            icon: PhosphorIconsRegular.userCircle,
           ),
-        if (cert['valid_to'] != null)
+        if (cert.validFrom != null)
+          _chip('from: ${cert.validFrom}', icon: PhosphorIconsRegular.calendar),
+        if (cert.validTo != null)
           _chip(
-            'to: ${cert['valid_to']}',
+            'to: ${cert.validTo}',
             icon: PhosphorIconsRegular.calendarBlank,
           ),
       ],
@@ -642,6 +667,8 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: _addToFavorites,
         tooltip: 'Agregar a favoritos',
+        backgroundColor: Colors.greenAccent,
+        foregroundColor: Colors.black,
         child: const PhosphorIcon(PhosphorIconsFill.star),
       ),
       body: _loading
@@ -662,30 +689,20 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     );
   }
 
-  bool _hostReady() => _host != null && _host!['ip'] != null;
+  bool _hostReady() => _host != null && _host!.ip.isNotEmpty;
 
   Widget _buildBody() {
-    final h = _host!;
+    final host = _host!;
 
-    // ✅ Tipar fuerte lo que usamos
-    final Map<String, dynamic> summary = Map<String, dynamic>.from(
-      (h['summary'] as Map?) ?? {},
-    );
-
-    final List<Map<String, dynamic>> services = ((h['services'] as List?) ?? [])
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
-
-    final List<String> vulns = ((h['vulns'] as List?) ?? [])
-        .map((e) => e.toString())
-        .toList();
+    final summary = host.summary; // Summary
+    final services = host.services; // List<Service>
+    final vulns = host.vulns; // List<String>
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         _sectionTitle('Overview', icon: PhosphorIconsRegular.info),
-        _header(Map<String, dynamic>.from(h)),
+        _header(host),
 
         _sectionTitle('Summary', icon: PhosphorIconsRegular.listChecks),
         _summary(summary),
