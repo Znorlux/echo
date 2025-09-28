@@ -8,9 +8,9 @@ import '../models/host.dart';
 import '../models/service.dart';
 import '../models/summary.dart';
 
-// 🔌 Usa la misma base que en SearchScreen:
+// Usa la misma base que en SearchScreen
 const String kBackendBase = 'http://192.168.1.16:4000';
-// const String kBackendBase = 'http://10.0.2.2:4000'; // Emulador Android
+// const String kBackendBase = 'http://10.0.2.2:4000'; // Emulador
 
 class HostDetailScreen extends StatefulWidget {
   const HostDetailScreen({super.key});
@@ -24,6 +24,10 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
   bool _loading = true;
   String? _error;
   bool _showAllVulns = false;
+
+  // --- Estado de favorito ---
+  String? _favId; // null = no es favorito
+  bool _favBusy = false; // para deshabilitar mientras agrega/borra
 
   String get _ip {
     final args = ModalRoute.of(context)?.settings.arguments;
@@ -45,9 +49,7 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     });
 
     try {
-      // Endpoint: http://localhost:4000/api/v1/shodan/host/<IP>
       final uri = Uri.parse('$kBackendBase/api/v1/shodan/host/$_ip');
-
       final resp = await http.get(uri).timeout(const Duration(seconds: 20));
       if (resp.statusCode != 200) {
         throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
@@ -61,6 +63,9 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
         _host = Host.fromMap(Map<String, dynamic>.from(data));
         _loading = false;
       });
+
+      // después de cargar el host, verificar si es favorito
+      await _loadFavoriteStatus();
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -69,11 +74,90 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     }
   }
 
-  Future<void> _addToFavorites() async {
-    if (!mounted || _host == null) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Guardado en favoritos (mock)')),
-    );
+  /// Consulta si esta IP ya está en favoritos
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      final uri = Uri.parse(
+        '$kBackendBase/api/v1/favorites',
+      ).replace(queryParameters: {'search': _ip, 'page': '1', 'size': '5'});
+      final resp = await http.get(uri).timeout(const Duration(seconds: 15));
+      if (resp.statusCode != 200) return;
+
+      final body = json.decode(resp.body);
+      final List list = (body['data'] as List?) ?? const [];
+      // buscar coincidencia exacta por IP
+      String? foundId;
+      for (final e in list) {
+        if (e is Map && (e['ip']?.toString() ?? '') == _ip) {
+          foundId = (e['id'] ?? e['_id'])?.toString();
+          break;
+        }
+      }
+      if (mounted) setState(() => _favId = foundId);
+    } catch (_) {
+      /* silenciar errores menores */
+    }
+  }
+
+  /// Alterna favorito: crea si no existe, borra si ya existe.
+  Future<void> _toggleFavorite() async {
+    if (_host == null || _favBusy) return;
+    setState(() => _favBusy = true);
+
+    try {
+      if (_favId == null) {
+        // Crear favorito
+        final uri = Uri.parse('$kBackendBase/api/v1/favorites');
+        final alias = _host!.hostnames.isNotEmpty
+            ? _host!.hostnames.first
+            : _host!.ip;
+        final resp = await http
+            .post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'ip': _host!.ip,
+                'alias': alias,
+                'notes': null,
+                'tags': <String>[],
+              }),
+            )
+            .timeout(const Duration(seconds: 20));
+
+        if (resp.statusCode != 200 && resp.statusCode != 201) {
+          throw Exception('No se pudo agregar (HTTP ${resp.statusCode})');
+        }
+        final body = json.decode(resp.body);
+        final id = (body is Map && body['data'] is Map)
+            ? ((body['data'] as Map)['id'] ?? (body['data'] as Map)['_id'])
+                  ?.toString()
+            : null;
+
+        setState(() => _favId = id ?? 'unknown');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Agregado a favoritos')));
+      } else {
+        // Eliminar favorito
+        final uri = Uri.parse('$kBackendBase/api/v1/favorites/$_favId');
+        final resp = await http
+            .delete(uri)
+            .timeout(const Duration(seconds: 15));
+        if (resp.statusCode != 200 && resp.statusCode != 204) {
+          throw Exception('No se pudo eliminar (HTTP ${resp.statusCode})');
+        }
+        setState(() => _favId = null);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Eliminado de favoritos')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _favBusy = false);
+    }
   }
 
   Color _riskColor(num? score) {
@@ -96,7 +180,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
-
         return ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxW),
           child: Container(
@@ -159,13 +242,11 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     );
   }
 
-  Widget _card(Widget child) {
-    return Card(
-      color: Colors.grey[900],
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Padding(padding: const EdgeInsets.all(14), child: child),
-    );
-  }
+  Widget _card(Widget child) => Card(
+    color: Colors.grey[900],
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    child: Padding(padding: const EdgeInsets.all(14), child: child),
+  );
 
   Widget _header(Host h) {
     final hostnames = h.hostnames;
@@ -222,7 +303,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
             ],
           ),
           const SizedBox(height: 12),
-
           if (hostnames.isNotEmpty || domains.isNotEmpty)
             Wrap(
               runSpacing: 6,
@@ -240,7 +320,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
                   ),
               ],
             ),
-
           if (geo != null) ...[
             const SizedBox(height: 10),
             Wrap(
@@ -259,7 +338,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
               ],
             ),
           ],
-
           if (h.lastUpdate != null) ...[
             const SizedBox(height: 10),
             _chip(
@@ -341,14 +419,14 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
             Wrap(
               runSpacing: 6,
               spacing: 6,
-              children: portBuckets.entries.map((e) {
-                final name = e.key;
-                final values = e.value; // List<int>
-                return _chip(
-                  '$name: ${values.join(", ")}',
-                  icon: PhosphorIconsRegular.hash,
-                );
-              }).toList(),
+              children: portBuckets.entries
+                  .map(
+                    (e) => _chip(
+                      '${e.key}: ${e.value.join(", ")}',
+                      icon: PhosphorIconsRegular.hash,
+                    ),
+                  )
+                  .toList(),
             ),
           ],
         ],
@@ -358,7 +436,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
 
   Widget _services(List<Service> services) {
     if (services.isEmpty) return _card(const Text('Sin servicios detectados.'));
-
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -366,7 +443,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
       itemBuilder: (context, i) {
         final s = services[i];
         final serviceName = s.service?.toLowerCase();
-
         return _card(
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,11 +596,23 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addToFavorites,
-        tooltip: 'Agregar a favoritos',
-        backgroundColor: Colors.greenAccent,
+        onPressed: (!_hostReady() || _favBusy) ? null : _toggleFavorite,
+        tooltip: _favId == null ? 'Agregar a favoritos' : 'Quitar de favoritos',
+        backgroundColor: _favId == null
+            ? Colors.greenAccent
+            : Colors.amberAccent,
         foregroundColor: Colors.black,
-        child: const PhosphorIcon(PhosphorIconsFill.star),
+        child: _favBusy
+            ? const SizedBox(
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : PhosphorIcon(
+                _favId == null
+                    ? PhosphorIconsRegular.star
+                    : PhosphorIconsFill.star,
+              ),
       ),
       body: _loading
           ? const LinearProgressIndicator()
@@ -557,13 +645,10 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
       children: [
         _sectionTitle('Overview', icon: PhosphorIconsRegular.info),
         _header(host),
-
         _sectionTitle('Summary', icon: PhosphorIconsRegular.listChecks),
         _summary(summary),
-
         _sectionTitle('Services', icon: PhosphorIconsRegular.plug),
         _services(services),
-
         _sectionTitle('Vulnerabilities', icon: PhosphorIconsRegular.bug),
         _vulns(vulns),
       ],
