@@ -1,8 +1,8 @@
-name: myapp
-description: "A new Flutter project."
+name: echord
+description: "Echord - A Fast Shodan API Client"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -42,6 +42,7 @@ dev_dependencies:
     sdk: flutter
   google_fonts: ^6.3.2
   flex_color_scheme: ^8.3.0
+  flutter_launcher_icons: ^0.14.3
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -50,12 +51,18 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+flutter_launcher_icons:
+  android: true
+  image_path: assets/icons/app_icon.png
+  adaptive_icon_background: "#212121" # Android (opcional)
+  adaptive_icon_foreground: assets/icons/app_icon.png
+  remove_alpha_ios: true
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

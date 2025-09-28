@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/widgets/glow_input.dart';
+import 'package:echord/widgets/glow_input.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class Favorite {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/config/app_theme.dart';
+import 'package:echord/config/app_theme.dart';
 import 'screens/search_screen.dart';
 import 'screens/host_detail_screen.dart';
 import 'screens/stats_screen.dart';
