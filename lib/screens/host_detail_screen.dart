@@ -1,8 +1,16 @@
+// lib/screens/host_detail_screen.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import '../models/host.dart';
 import '../models/service.dart';
 import '../models/summary.dart';
+
+// 🔌 Usa la misma base que en SearchScreen:
+const String kBackendBase = 'http://192.168.1.16:4000';
+// const String kBackendBase = 'http://10.0.2.2:4000'; // Emulador Android
 
 class HostDetailScreen extends StatefulWidget {
   const HostDetailScreen({super.key});
@@ -20,32 +28,37 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
   String get _ip {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map && args['ip'] is String) return args['ip'] as String;
-    // si no te pasaron ip, usa la del ejemplo
     return '45.33.32.156';
   }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchHost();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchHost());
   }
 
-  // =========================
-  // MOCK: sin backend
-  // =========================
+  // =============== Networking ===============
   Future<void> _fetchHost() async {
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
-      // simula latencia
-      await Future.delayed(const Duration(milliseconds: 600));
-      final mock = _mockHostResponseFor(_ip);
+      // Endpoint: http://localhost:4000/api/v1/shodan/host/<IP>
+      final uri = Uri.parse('$kBackendBase/api/v1/shodan/host/$_ip');
+
+      final resp = await http.get(uri).timeout(const Duration(seconds: 20));
+      if (resp.statusCode != 200) {
+        throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+      }
+
+      final body = json.decode(resp.body);
+      final data = body['data'];
+      if (data is! Map) throw Exception('Respuesta inválida del backend');
+
       setState(() {
-        _host = Host.fromMap(mock['data'] as Map<String, dynamic>);
+        _host = Host.fromMap(Map<String, dynamic>.from(data));
         _loading = false;
       });
     } catch (e) {
@@ -54,159 +67,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
         _loading = false;
       });
     }
-  }
-
-  Map<String, dynamic> _mockHostResponseFor(String ip) {
-    // podrías tener distintos mocks por IP si quieres
-    return {
-      "data": {
-        "ip": ip,
-        "org": "Linode",
-        "isp": "Akamai Connected Cloud",
-        "hostnames": ["scanme.nmap.org"],
-        "domains": ["nmap.org"],
-        "geo": {
-          "country": "United States",
-          "city": "Fremont",
-          "lat": 37.54827,
-          "lon": -121.98857,
-        },
-        "last_update": "2025-09-27T14:57:39.932874",
-        "summary": {
-          "open_ports_count": 5,
-          "open_ports": [22, 80, 123, 9929, 31337],
-          "top_service": "https-simple-new",
-          "web_stack": "Apache/2.4.7 (Ubuntu)",
-          "tls_summary": null,
-          "provider_hint": null,
-          "badges": ["web"],
-          "risk_score": 40,
-          "exposure_flags": ["remote_access_exposed", "unencrypted_web"],
-          "port_buckets": {
-            "web": [80],
-            "db": [],
-            "remote_access": [22],
-            "mail": [],
-            "dns": [],
-            "other": [123, 9929, 31337],
-          },
-        },
-        "services": [
-          {
-            "port": 22,
-            "transport": "tcp",
-            "service": "OpenSSH",
-            "product": "OpenSSH",
-            "version": "6.6.1 Ubuntu",
-            "cpe": [
-              "cpe:/a:openbsd:openssh:6.6.1p1",
-              "cpe:/o:canonical:ubuntu_linux",
-            ],
-            "fingerprints": -145740310,
-            "http": null,
-            "ssl": null,
-            "raw_tags": ["cloud"],
-          },
-          {
-            "port": 80,
-            "transport": "tcp",
-            "service": "Apache httpd",
-            "product": "Apache httpd",
-            "version": "2.4.7",
-            "cpe": [
-              "cpe:/a:apache:http_server:2.4.7",
-              "cpe:/o:canonical:ubuntu_linux",
-            ],
-            "fingerprints": 173770629,
-            "http": {
-              "server": "Apache/2.4.7 (Ubuntu)",
-              "title": "Go ahead and ScanMe!",
-              "status": 200,
-              "redirects": [],
-              "headers": {},
-            },
-            "ssl": null,
-            "raw_tags": ["cloud"],
-          },
-          {
-            "port": 123,
-            "transport": "udp",
-            "service": "ntp",
-            "product": null,
-            "version": 1.2,
-            "cpe": [],
-            "fingerprints": 1863949623,
-            "http": null,
-            "ssl": null,
-            "raw_tags": ["cloud"],
-          },
-          {
-            "port": 9929,
-            "transport": "tcp",
-            "service": "sftpserver",
-            "product": null,
-            "version": 1.2,
-            "cpe": [],
-            "fingerprints": 323137400,
-            "http": null,
-            "ssl": null,
-            "raw_tags": ["cloud"],
-          },
-          {
-            "port": 31337,
-            "transport": "tcp",
-            "service": "https-simple-new",
-            "product": null,
-            "version": null,
-            "cpe": [],
-            "fingerprints": null,
-            "http": null,
-            "ssl": null,
-            "raw_tags": ["cloud"],
-          },
-        ],
-        "vulns": [
-          "CVE-2014-0117",
-          "CVE-2017-7679",
-          "CVE-2017-9798",
-          "CVE-2015-3185",
-          "CVE-2015-3184",
-          "CVE-2015-3183",
-          "CVE-2013-4365",
-          "CVE-2022-28330",
-          "CVE-2021-32791",
-          "CVE-2021-32792",
-          "CVE-2023-31122",
-          "CVE-2024-38476",
-          "CVE-2024-38477",
-          "CVE-2024-38474",
-          "CVE-2024-38475",
-          "CVE-2024-38472",
-          "CVE-2024-38473",
-          "CVE-2009-0796",
-          "CVE-2014-0118",
-          "CVE-2022-31813",
-          "CVE-2020-1927",
-          "CVE-2011-2688",
-          "CVE-2017-3167",
-          "CVE-2023-38709",
-          "CVE-2021-32786",
-          "CVE-2021-32785",
-          "CVE-2007-4723",
-          "CVE-2021-44790",
-          "CVE-2016-4975",
-          "CVE-2020-13938",
-          "CVE-2020-35452",
-          "CVE-2022-22719",
-          "CVE-2024-47252",
-          "CVE-2020-1934",
-          "CVE-2021-34798",
-          "CVE-2019-0217",
-          "CVE-2024-24795",
-          "CVE-2014-3523",
-        ],
-      },
-    };
   }
 
   Future<void> _addToFavorites() async {
@@ -233,7 +93,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // El chip no podrá ser más ancho que el espacio disponible en la fila/wrap
         final maxW = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
@@ -264,12 +123,11 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
                       color: color ?? Colors.greenAccent,
                     ),
                   ),
-                // ⬇️ Esto evita el overflow
                 Flexible(
                   child: Text(
                     text,
                     overflow: TextOverflow.ellipsis,
-                    maxLines: 1, // si prefieres 2 líneas, pon 2
+                    maxLines: 1,
                     style: TextStyle(
                       color: color ?? Colors.greenAccent,
                       fontSize: 12,
@@ -485,7 +343,7 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
               spacing: 6,
               children: portBuckets.entries.map((e) {
                 final name = e.key;
-                final values = (e.value as List?)?.cast<num>() ?? const [];
+                final values = e.value; // List<int>
                 return _chip(
                   '$name: ${values.join(", ")}',
                   icon: PhosphorIconsRegular.hash,
@@ -542,7 +400,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
                       .map((e) => _chip(e, icon: PhosphorIconsRegular.code))
                       .toList(),
                 ),
-
               if (s.http.server != null ||
                   (s.http.title?.isNotEmpty ?? false) ||
                   s.http.status != null) ...[
@@ -568,7 +425,6 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
                     icon: PhosphorIconsRegular.numberSquareNine,
                   ),
               ],
-              // TLS
               if (s.ssl.versions.isNotEmpty ||
                   s.ssl.alpn.isNotEmpty ||
                   s.ssl.cert.validFrom != null ||
@@ -624,9 +480,8 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
   }
 
   Widget _vulns(List<String> vulns) {
-    if (vulns.isEmpty) {
+    if (vulns.isEmpty)
       return _card(const Text('Sin vulnerabilidades reportadas por Shodan.'));
-    }
     final show = _showAllVulns ? vulns : vulns.take(12).toList();
     return _card(
       Column(
@@ -693,10 +548,9 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
 
   Widget _buildBody() {
     final host = _host!;
-
-    final summary = host.summary; // Summary
-    final services = host.services; // List<Service>
-    final vulns = host.vulns; // List<String>
+    final summary = host.summary;
+    final services = host.services;
+    final vulns = host.vulns;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
