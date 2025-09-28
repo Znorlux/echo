@@ -52,6 +52,23 @@ class FavoritesListScreen extends StatefulWidget {
 class _FavoritesListScreenState extends State<FavoritesListScreen> {
   final _searchCtrl = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    // Escuchar cambios en el texto para actualizar el filtro automáticamente
+    _searchCtrl.addListener(() {
+      setState(() {
+        _query = _searchCtrl.text.trim();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   // Datos de prueba
   final List<Favorite> _all = [
     const Favorite(
@@ -149,17 +166,18 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
             child: GlowInput(
               controller: _searchCtrl,
               hintText: 'Filtrar por IP, alias o tag...',
-              onSearch: () => setState(() => _query = _searchCtrl.text.trim()),
             ),
           ),
 
           // Lista
           Expanded(
             child: _filtered.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
-                      'Sin favoritos. Toca + para agregar uno.',
-                      style: TextStyle(color: Colors.grey),
+                      _query.isEmpty
+                          ? 'Sin favoritos. Toca + para agregar uno.'
+                          : 'No se encontraron resultados para "$_query"',
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   )
                 : ListView.builder(
