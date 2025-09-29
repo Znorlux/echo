@@ -1,4 +1,4 @@
-<img src="./echord-banner.png"/>
+<img src="./echord_banner.png"/>
 
 # Echord — OSINT & Exposure Viewer (Flutter)
 
