@@ -27,6 +27,7 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
 
   // --- Estado de favorito ---
   String? _favId; // null = no es favorito
+  String? _favNotes; // notas del favorito
   bool _favBusy = false; // para deshabilitar mientras agrega/borra
 
   String get _ip {
@@ -85,17 +86,26 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
 
       final body = json.decode(resp.body);
       final List list = (body['data'] as List?) ?? const [];
-      // buscar coincidencia exacta por IP
+
       String? foundId;
+      String? notes;
+
       for (final e in list) {
         if (e is Map && (e['ip']?.toString() ?? '') == _ip) {
           foundId = (e['id'] ?? e['_id'])?.toString();
+          notes = (e['notes'] as String?)?.toString();
           break;
         }
       }
-      if (mounted) setState(() => _favId = foundId);
+
+      if (mounted) {
+        setState(() {
+          _favId = foundId;
+          _favNotes = notes;
+        });
+      }
     } catch (_) {
-      /* silenciar errores menores */
+      // silenciar
     }
   }
 
@@ -580,6 +590,15 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
     );
   }
 
+  Widget _noteCard(String notes) {
+    return _card(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [const SizedBox(height: 8), Text(notes)],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final canShow = _ip.isNotEmpty;
@@ -651,6 +670,10 @@ class _HostDetailScreenState extends State<HostDetailScreen> {
         _services(services),
         _sectionTitle('Vulnerabilities', icon: PhosphorIconsRegular.bug),
         _vulns(vulns),
+        if (_favNotes != null) ...[
+          _sectionTitle('Notes', icon: PhosphorIconsRegular.notePencil),
+          _noteCard(_favNotes!),
+        ],
       ],
     );
   }
