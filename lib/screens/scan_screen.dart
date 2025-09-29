@@ -40,7 +40,7 @@ class _ScanScreenState extends State<ScanScreen> {
     final ipv4 = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
     final ipv6 = RegExp(
       r'^[0-9a-fA-F:]+$',
-    ); // muy permisivo (suficiente para UI)
+    ); // esto es muy permisivo (suficiente para UI)
     final host = RegExp(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'); // dominio simple
     return ipv4.hasMatch(s) || ipv6.hasMatch(s) || host.hasMatch(s);
   }
@@ -282,7 +282,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 padding: EdgeInsets.only(top: 24),
                 child: Center(
                   child: Text(
-                    'Escribe una IP u hostname y presiona Enter o el botón de buscar',
+                    'Puedes ingresar dominios a los cuales se les aplicará automaticamente resolucion de DNS para obtener su.',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),
