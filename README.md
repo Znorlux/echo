@@ -2,7 +2,7 @@
 
 <!-- Pon aquí una imagen/banner horizontal de tu app (por ejemplo en ./docs/banner.png) -->
 
-[Echord banner](./echord-banner.png)
+(./echord-banner.png)
 
 # Echord — OSINT & Exposure Viewer (Flutter)
 
