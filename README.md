@@ -4,6 +4,9 @@
 
 Echord es una app Flutter para explorar hosts, servicios expuestos y vulnerabilidades usando un backend (Shodan-based). Incluye búsqueda avanzada con *presets*, escaneo puntual por IP/hostname, detalle enriquecido por host, y un sistema de favoritos con notas y tags.
 
+<a href="https://drive.google.com/file/d/1XNjB39yeCu35uCHOWNKt4tesIblgVHUK/view?usp=sharing">
+Video de demostración
+<a/>
 ---
 
 ## ✨ Características
