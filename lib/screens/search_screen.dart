@@ -28,15 +28,30 @@ class _SearchScreenState extends State<SearchScreen> {
   int _total = 0;
   String _currentQuery = '';
 
+  // Paginación visual
+  int _displayPage = 1;
+  final int _displayPageSize = 5;
+
   // Presets de búsqueda
   final List<String> _presets = const [
     'port:22 country:CO',
-    'service:http status:200',
-    'remote_access_exposed',
-    'unencrypted_web',
-    'product:"Apache httpd"',
+    'http.status:200',
+    'http.title:"index of /"',
+    'http.headers.server:"Apache"',
+    'product:"Apache httpd" port:80',
+    'product:"OpenSSH" port:22',
     'org:"Akamai Connected Cloud"',
-    'open_ports:>3',
+    'asn:AS63949',
+    'hostname:"scanme.nmap.org"',
+    'net:45.33.32.0/24',
+    'city:"Bogotá" port:80',
+    'ssl:true port:443',
+    'ssl.alpn:h2',
+    'ssl.cert.subject.cn:"google.com"',
+    'cpe:"cpe:/a:openbsd:openssh"',
+    'ports:80,443',
+    '(port:22 OR port:3389 OR port:5900 OR port:23)',
+    'port:80 -ssl:true',
   ];
 
   @override
@@ -66,6 +81,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _results = const [];
         _total = 0;
         _error = null;
+        _displayPage = 1;
       });
     }
 
@@ -117,13 +133,43 @@ class _SearchScreenState extends State<SearchScreen> {
     _search(p);
   }
 
+  // Obtener resultados de la página actual para mostrar
+  List<_Hit> _getDisplayResults() {
+    final start = (_displayPage - 1) * _displayPageSize;
+    final end = start + _displayPageSize;
+    if (start >= _results.length) return [];
+    return _results.sublist(
+      start,
+      end > _results.length ? _results.length : end,
+    );
+  }
+
+  // Calcular total de páginas visuales
+  int _getTotalDisplayPages() {
+    if (_results.isEmpty) return 0;
+    return (_results.length / _displayPageSize).ceil();
+  }
+
+  // Cambiar página y cargar más si es necesario
+  Future<void> _changeDisplayPage(int newPage) async {
+    setState(() => _displayPage = newPage);
+
+    // Si nos acercamos al final y hay más resultados, cargar
+    final neededResults = newPage * _displayPageSize;
+    if (neededResults > _results.length &&
+        _results.length < _total &&
+        !_loading) {
+      _page += 1;
+      await _search(_currentQuery, reset: false);
+    }
+  }
+
   // --------------- UI ---------------
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasResults = _results.isNotEmpty;
-    final canPaginate = _results.length < _total;
 
     return Scaffold(
       appBar: AppBar(
@@ -217,7 +263,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              ..._results.map(
+              ..._getDisplayResults().map(
                 (e) => _ResultTile(
                   hit: e,
                   onTap: () => Navigator.pushNamed(
@@ -234,21 +280,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   },
                 ),
               ),
-              if (canPaginate) ...[
-                const SizedBox(height: 8),
-                Center(
-                  child: OutlinedButton.icon(
-                    onPressed: _loading
-                        ? null
-                        : () {
-                            _page += 1;
-                            _search(_currentQuery, reset: false);
-                          },
-                    icon: const Icon(Icons.expand_more),
-                    label: Text(_loading ? 'Cargando...' : 'Cargar más'),
-                  ),
-                ),
-              ],
+              const SizedBox(height: 16),
+              _PaginationControls(
+                currentPage: _displayPage,
+                totalPages: _getTotalDisplayPages(),
+                onPageChanged: _changeDisplayPage,
+                loading: _loading,
+              ),
             ],
           ],
         ),
@@ -327,6 +365,104 @@ class _ErrorBox extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PaginationControls extends StatelessWidget {
+  final int currentPage;
+  final int totalPages;
+  final Function(int) onPageChanged;
+  final bool loading;
+
+  const _PaginationControls({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageChanged,
+    required this.loading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (totalPages <= 1) return const SizedBox.shrink();
+
+    // Calcular qué páginas mostrar
+    List<int> pagesToShow = [];
+    if (totalPages <= 5) {
+      // Mostrar todas si son 5 o menos
+      pagesToShow = List.generate(totalPages, (i) => i + 1);
+    } else {
+      // Mostrar páginas alrededor de la actual
+      if (currentPage <= 3) {
+        pagesToShow = [1, 2, 3, 4, 5];
+      } else if (currentPage >= totalPages - 2) {
+        pagesToShow = List.generate(5, (i) => totalPages - 4 + i);
+      } else {
+        pagesToShow = List.generate(5, (i) => currentPage - 2 + i);
+      }
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Botón anterior
+        IconButton(
+          onPressed: currentPage > 1 && !loading
+              ? () => onPageChanged(currentPage - 1)
+              : null,
+          icon: const Icon(Icons.chevron_left),
+          style: IconButton.styleFrom(backgroundColor: Colors.grey[800]),
+        ),
+        const SizedBox(width: 8),
+
+        // Números de página
+        ...pagesToShow.map((page) {
+          final isActive = page == currentPage;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: InkWell(
+              onTap: !loading && page != currentPage
+                  ? () => onPageChanged(page)
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? Colors.greenAccent.withOpacity(0.2)
+                      : Colors.grey[800],
+                  borderRadius: BorderRadius.circular(8),
+                  border: isActive
+                      ? Border.all(color: Colors.greenAccent, width: 1.5)
+                      : null,
+                ),
+                child: Center(
+                  child: Text(
+                    '$page',
+                    style: TextStyle(
+                      color: isActive ? Colors.greenAccent : Colors.white,
+                      fontWeight: isActive
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+
+        const SizedBox(width: 8),
+        // Botón siguiente
+        IconButton(
+          onPressed: currentPage < totalPages && !loading
+              ? () => onPageChanged(currentPage + 1)
+              : null,
+          icon: const Icon(Icons.chevron_right),
+          style: IconButton.styleFrom(backgroundColor: Colors.grey[800]),
+        ),
+      ],
     );
   }
 }
