@@ -188,7 +188,7 @@ class _SearchScreenState extends State<SearchScreen> {
           controller: _scroll,
           padding: const EdgeInsets.all(16),
           children: [
-            // 🔎 Tu GlowInput (sin onChanged)
+            // GlowInput
             GlowInput(
               controller: _controller,
               hintText: "Buscar host, dominio o query...",
@@ -201,7 +201,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
             const SizedBox(height: 12),
 
-            // 🎛️ Presets horizontales (más compacto)
+            // 🎛️ Presets horizontales de shodan
             SizedBox(
               height: 40,
               child: ListView.separated(

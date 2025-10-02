@@ -117,7 +117,6 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
       }
 
       final body = json.decode(resp.body);
-      // Asumo { data: [...], total: N } (ajusta claves si difieren)
       final List list = (body['data'] as List?) ?? const [];
       final total = (body['total'] as num?)?.toInt() ?? list.length;
 
@@ -145,7 +144,7 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
     await _fetchFavorites(resetPage: false);
   }
 
-  // ---------- Navegación existente (se mantiene tal cual) ----------
+  // ---------- Navegación ----------
 
   void _edit(Favorite f) {
     Navigator.pushNamed(context, '/favorites/form', arguments: f.toMap());
